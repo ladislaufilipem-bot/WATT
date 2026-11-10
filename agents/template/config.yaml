@@ -1,0 +1,143 @@
+# Agent Template Configuration
+version: "1.0.0"
+
+agent:
+  name: "template"
+  description: "Template agent - customize for your task"
+  type: "ppo"
+  created_at: ""
+
+# PPO Configuration (overrides global defaults)
+ppo:
+  learning_rate: 3.0e-4
+  n_steps: 2048
+  batch_size: 64
+  n_epochs: 10
+  gamma: 0.99
+  gae_lambda: 0.95
+  clip_range: 0.2
+  clip_range_vf: null
+  ent_coef: 0.01
+  vf_coef: 0.5
+  max_grad_norm: 0.5
+  target_kl: 0.01
+  normalize_advantage: true
+
+# Neural Network Configuration
+neural:
+  actor:
+    type: "gaussian"
+    encoder:
+      type: "mlp"
+      hidden_sizes: [128, 128]
+    hidden_sizes: [256, 256]
+    activation: "tanh"
+    layer_norm: false
+    log_std_init: -0.5
+    log_std_min: -20.0
+    log_std_max: 2.0
+    state_dependent_std: true
+    squash: false
+    action_scale: 1.0
+    action_bias: 0.0
+
+  critic:
+    type: "mlp"
+    encoder:
+      type: "mlp"
+      hidden_sizes: [128, 128]
+    hidden_sizes: [256, 256]
+    activation: "tanh"
+    layer_norm: false
+    clip_value: null
+
+# Environment Configuration
+env:
+  type: "webots"
+  world: "training.wbt"
+  robot_name: "ppo_robot"
+  controller: "ppo_agent"
+  max_episode_steps: 1000
+
+  # Observation keys (must match Webots sensors)
+  observation_keys:
+    - "joint_pos"
+    - "joint_vel"
+    - "imu"
+    - "lidar"
+
+  # Action keys (must match Webots actuators)
+  action_keys:
+    - "motor_pos"
+
+  # Reward weights
+  reward_weights:
+    forward_vel: 1.0
+    energy: -0.01
+    alive: 0.1
+    stability: 0.0
+    task_completion: 0.0
+
+  # Observation space (auto-detected from Webots, but can override)
+  observation_space:
+    joint_pos:
+      shape: [12]
+      dtype: "float32"
+      min: -3.14159
+      max: 3.14159
+    joint_vel:
+      shape: [12]
+      dtype: "float32"
+      min: -10.0
+      max: 10.0
+    imu:
+      shape: [3]
+      dtype: "float32"
+      min: -3.14159
+      max: 3.14159
+    lidar:
+      shape: [360]
+      dtype: "float32"
+      min: 0.0
+      max: 10.0
+
+  # Action space
+  action_space:
+    motor_pos:
+      shape: [12]
+      dtype: "float32"
+      min: -3.14159
+      max: 3.14159
+
+# Preprocessing
+preprocessing:
+  normalize_obs: true
+  obs_clip: 10.0
+  normalize_reward: false
+  reward_clip: 10.0
+  reward_gamma: 0.99
+  action_scale: 1.0
+  action_bias: 0.0
+
+# Training Configuration
+training:
+  total_timesteps: 5_000_000
+  n_envs: 8
+  eval_freq: 50_000
+  n_eval_episodes: 10
+  save_freq: 100_000
+  max_episode_steps: 1000
+  seed: 42
+  deterministic: true
+  device: "auto"
+  log_level: "INFO"
+  log_interval: 1000
+
+# Logging
+logging:
+  tensorboard: true
+  wandb: false
+  wandb_project: "ppo-webots"
+  wandb_entity: null
+  console_level: "INFO"
+  file_level: "DEBUG"

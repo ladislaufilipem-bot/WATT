@@ -1,0 +1,238 @@
+# Webots Simulation Configuration
+version: "1.0.0"
+
+# Webots Installation
+webots:
+  # Auto-detect from WEBOTS_HOME env var, or set explicitly
+  home: null  # e.g., "C:/Program Files/Webots" or "/usr/local/webots"
+  version: "R2023b"
+
+  # Python controller API
+  python_version: "3.10"
+  controller_api: "controller"  # or "vehicle" for vehicle library
+
+# Simulation Settings
+simulation:
+  # World file (relative to webots/worlds/)
+  default_world: "training.wbt"
+
+  # Physics timestep (ms) - lower = more accurate, slower
+  basic_time_step: 16  # 60 Hz
+
+  # Rendering mode
+  rendering:
+    enabled: false  # Headless for training
+    mode: "fast"    # fast, realtime, paused
+    width: 1280
+    height: 720
+    antialiasing: false
+    shadows: false
+
+  # Simulation speed (1.0 = real-time, 0 = fastest)
+  # Only works in realtime mode
+  speed: 0.0
+
+  # Synchronization
+  sync: true  # Wait for controller step
+
+  # Supervisor (for environment control)
+  supervisor:
+    enabled: true
+    controller: "supervisor"
+
+# Robot Configuration
+robot:
+  # Robot name in world (DEF name)
+  name: "ppo_robot"
+
+  # Controller name (folder in webots/controllers/)
+  controller: "ppo_agent"
+
+  # Sensors to enable (match world)
+  sensors:
+    - name: "lidar"
+      type: "Lidar"
+      enable: true
+      sampling_period: 16  # ms
+      # Lidar specific
+      horizontal_resolution: 360
+      frequency: 10
+      max_range: 10.0
+      noise: 0.01
+
+    - name: "imu"
+      type: "InertialUnit"
+      enable: true
+      sampling_period: 16
+      # IMU specific
+      noise: 0.001
+
+    - name: "gyro"
+      type: "Gyro"
+      enable: true
+      sampling_period: 16
+      noise: 0.001
+
+    - name: "accelerometer"
+      type: "Accelerometer"
+      enable: true
+      sampling_period: 16
+      noise: 0.01
+
+    - name: "gps"
+      type: "GPS"
+      enable: true
+      sampling_period: 16
+      noise: 0.01
+
+    - name: "camera"
+      type: "Camera"
+      enable: false  # Expensive - disable unless needed
+      sampling_period: 64
+      width: 640
+      height: 480
+      fov: 1.0
+
+  # Actuators
+  actuators:
+    - name: "motor_*"
+      type: "Motor"
+      control_mode: "position"  # position, velocity, torque
+      # Position control
+      max_velocity: 10.0
+      max_torque: 50.0
+      # PID (if position control)
+      pid:
+        p: 100.0
+        i: 0.0
+        d: 10.0
+
+# Communication Protocol (Supervisor <-> Controller)
+communication:
+  # Message format: JSON over Webots Emitter/Receiver
+  channel: 1
+  range: -1  # -1 = unlimited
+
+  # Message types
+  messages:
+    # Supervisor -> Controller
+    step: "step"           # {action: [...], reset: bool}
+    reset: "reset"         # {seed: int, config: {...}}
+    configure: "configure" # {obs_space, action_space, config}
+
+    # Controller -> Supervisor
+    observation: "observation"  # {obs: {...}, reward: float, done: bool, info: {...}}
+    ready: "ready"              # {}
+    error: "error"              # {message: str}
+
+# Environment Spaces (Auto-detected from robot, but can override)
+spaces:
+  # Observation space definition
+  observation:
+    # Proprioception
+    joint_pos:
+      shape: [12]  # Number of joints
+      dtype: "float32"
+      min: -3.14
+      max: 3.14
+    joint_vel:
+      shape: [12]
+      dtype: "float32"
+      min: -10.0
+      max: 10.0
+    imu:
+      shape: [3]  # roll, pitch, yaw
+      dtype: "float32"
+      min: -3.14
+      max: 3.14
+    gyro:
+      shape: [3]
+      dtype: "float32"
+      min: -10.0
+      max: 10.0
+    accelerometer:
+      shape: [3]
+      dtype: "float32"
+      min: -20.0
+      max: 20.0
+    # Exteroception
+    lidar:
+      shape: [360]
+      dtype: "float32"
+      min: 0.0
+      max: 10.0
+    # Task-specific
+    target_pos:
+      shape: [3]
+      dtype: "float32"
+
+  # Action space definition
+  action:
+    motor_pos:
+      shape: [12]
+      dtype: "float32"
+      min: -3.14
+      max: 3.14
+
+# Domain Randomization (for sim-to-real)
+domain_randomization:
+  enabled: false
+
+  # Physics randomization
+  physics:
+    friction_range: [0.5, 1.5]
+    restitution_range: [0.0, 0.1]
+    mass_multiplier_range: [0.8, 1.2]
+    gravity_noise: 0.05
+    timestep_jitter: 0.001
+
+  # Sensor noise
+  sensors:
+    lidar_noise_std: 0.02
+    imu_noise_std: 0.005
+    joint_pos_noise_std: 0.01
+    joint_vel_noise_std: 0.05
+
+  # Actuator randomization
+  actuators:
+    torque_multiplier_range: [0.8, 1.2]
+    velocity_multiplier_range: [0.8, 1.2]
+    position_offset_range: [-0.05, 0.05]
+    latency_range: [0, 2]  # steps
+
+  # Visual randomization (if camera enabled)
+  visual:
+    lighting_range: [0.5, 1.5]
+    texture_randomization: false
+    camera_noise_std: 0.01
+
+# Curriculum Worlds
+curriculum:
+  enabled: false
+  worlds:
+    - name: "level_1"
+      world: "curriculum/level_1.wbt"
+      threshold: 100.0  # Mean reward to advance
+      min_episodes: 100
+    - name: "level_2"
+      world: "curriculum/level_2.wbt"
+      threshold: 200.0
+      min_episodes: 200
+    - name: "level_3"
+      world: "curriculum/level_3.wbt"
+      threshold: 300.0
+      min_episodes: 300
+
+# Performance Optimization
+performance:
+  # Batch multiple steps per controller call
+  step_batch_size: 1
+
+  # Skip rendering frames
+  render_skip: 0
+
+  # Use shared memory for images (if camera)
+  shared_memory: false
+
+  # Compile controller (faster startup)
+  compile_controller: true

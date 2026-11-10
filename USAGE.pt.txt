@@ -1,0 +1,358 @@
+================================================================================
+GUIA DE USO - FRAMEWORK TREINAMENTO PPO COM WEBOTS (PORTUGUÊS)
+================================================================================
+
+LOCAL DO PROJETO: C:\Users\ladis\OneDrive\Desktop\ia
+
+================================================================================
+1. PRÉ-REQUISITOS
+================================================================================
+
+Software Necessário:
+  - Python 3.10+
+  - Webots R2023b+ (baixe de https://cyberbotics.com/)
+  - CUDA 12.1+ (opcional, para treino GPU)
+
+Variáveis de Ambiente (defina antes de rodar):
+  Windows PowerShell:
+    $env:WEBOTS_HOME = "C:\Program Files\Webots"
+
+  Linux/macOS:
+    export WEBOTS_HOME=/usr/local/webots
+
+================================================================================
+2. INSTALAÇÃO
+================================================================================
+
+cd C:\Users\ladis\OneDrive\Desktop\ia
+
+# Dependências principais
+pip install -r requirements.txt
+
+# Dependências desenvolvimento (testes, linting, visualização)
+pip install -r requirements-dev.txt
+
+# Instalar hooks pre-commit
+pre-commit install
+
+================================================================================
+3. VISÃO GERAL ESTRUTURA
+================================================================================
+
+ia/
+├── init/                    # OBRIGATÓRIO: Leia rules.md primeiro!
+│   ├── rules.md             # Regras desenvolvimento
+│   ├── structure.md         # Padrões estrutura diretórios
+│   └── workflow.md          # Procedimentos treinamento
+├── config/                  # Configs globais YAML
+├── core/                    # Bibliotecas compartilhadas (SEM imports cross-agent)
+├── agents/                  # Agentes isolados (pastas próprias)
+│   └── template/            # Template novos agentes
+├── webots/                  # Assets simulação Webots
+├── training/                # Orquestração multi-agente
+├── scripts/                 # CLI utilities
+└── tests/                   # Testes unitários
+
+================================================================================
+4. CRIANDO NOVO AGENTE
+================================================================================
+
+Listar templates:
+  python scripts/create_agent.py --list
+
+Criar agente do template:
+  python scripts/create_agent.py --name agent_001 --template walker --world walker-training.wbt --description "Bípede terreno acidentado"
+
+Templates disponíveis:
+  - walker    : Locomoção bípede/quadrúpede (12 DOF, LiDAR, IMU)
+  - arm       : Manipulação braço robótico (6 DOF, rastreamento efetuador)
+  - drone     : Controle quadricóptero (4 motores, posição/velocidade)
+  - default   : Template genérico
+
+Isso cria:
+  agents/agent_001/
+  ├── config.yaml          # Config agente (EDITE ESTE)
+  ├── train.py             # Entry point treinamento
+  ├── eval.py              # Entry point avaliação
+  ├── model/__init__.py    # Arquiteturas customizadas (opcional)
+  ├── logs/                # Logs treinamento (auto-criado)
+  ├── checkpoints/         # Checkpoints modelo (auto-criado)
+  └── videos/              # Vídeos avaliação (auto-criado)
+
+================================================================================
+5. CONFIGURANDO SEU AGENTE
+================================================================================
+
+Edite agents/agent_001/config.yaml:
+
+Seções principais para customizar:
+
+  env:
+    world: "training.wbt"           # Arquivo mundo Webots
+    observation_keys: [...]         # Nomes sensores (devem match Webots)
+    action_keys: [...]              # Nomes atuadores (devem match Webots)
+    reward_weights:                 # PESOS FUNÇÃO RECOMPENSA
+      forward_vel: 1.0
+      energy: -0.01
+      alive: 0.1
+      stability: 0.5
+
+  ppo:                              # Hiperparâmetros PPO
+    learning_rate: 3e-4
+    n_steps: 2048
+    batch_size: 64
+    n_epochs: 10
+    gamma: 0.99
+    clip_range: 0.2
+    ent_coef: 0.01
+
+  neural:                           # Arquitetura rede
+    actor:
+      hidden_sizes: [256, 256]
+      activation: "tanh"
+    critic:
+      hidden_sizes: [256, 256]
+
+  training:
+    total_timesteps: 5000000
+    eval_freq: 50000
+    n_eval_episodes: 10
+
+FUNÇÃO RECOMPENSA CUSTOM:
+Edite agents/agent_001/train.py, modifique custom_reward_fn():
+  def custom_reward_fn(obs, action, next_obs, info):
+      reward = 0.0
+      breakdown = {}
+      # Sua lógica recompensa aqui
+      return reward, breakdown
+
+================================================================================
+6. SETUP MUNDO WEBOTS
+================================================================================
+
+1. Abra Webots, crie novo mundo em webots/worlds/seu_mundo.wbt
+2. Adicione robô com DEF name "PPO_ROBOT"
+3. Adicione sensores: Lidar, InertialUnit, Gyro, Accelerometer, GPS, PositionSensors
+4. Adicione atuadores: Motors com controle posição
+5. Adicione Supervisor para controle ambiente
+6. Defina controller robô = "ppo_agent"
+7. Defina controller supervisor = "supervisor"
+
+PROTO robô em webots/proto/robots/SeuRobo.proto:
+  PROTO SeuRobo [ ... ] {
+    Robot {
+      name "PPO_ROBOT"
+      controller "ppo_agent"
+      children [ ... sensores e atuadores ... ]
+    }
+  }
+
+================================================================================
+7. TREINAMENTO
+================================================================================
+
+Navegue ao diretório agente:
+  cd agents/agent_001
+
+Validação rápida (1 episódio, sem salvar):
+  python train.py --dry-run --verbose
+
+Treino completo:
+  python train.py
+
+Retomar checkpoint:
+  python train.py --resume checkpoints/latest.pt
+
+Override config via CLI:
+  python train.py --override ppo.learning_rate=1e-4 training.total_timesteps=1000000
+
+Com Weights & Biases:
+  python train.py --wandb --wandb-project meu-projeto
+
+Monitorar (terminal separado):
+  tensorboard --logdir logs/tensorboard
+
+================================================================================
+8. AVALIAÇÃO
+================================================================================
+
+Avaliar agente único:
+  python scripts/evaluate.py --agents agent_001 --episodes 100 --output eval.json
+
+Checkpoint específico:
+  python scripts/evaluate.py --agents agent_001 --checkpoint step_500000.pt --episodes 50
+
+Comparar múltiplos:
+  python scripts/evaluate.py --agents agent_001,agent_002,agent_003 --compare --output comparacao.json
+
+Renderizar avaliação:
+  python scripts/evaluate.py --agents agent_001 --episodes 10 --render
+
+================================================================================
+9. VISUALIZAÇÃO
+================================================================================
+
+Plotar métricas agente:
+  python scripts/visualize.py --agents agent_001 --metric episode_reward --output plot.png
+
+Comparar agentes:
+  python scripts/visualize.py --compare agent_001,agent_002 --metric episode_reward --output comparacao.png
+
+Relatório HTML interativo:
+  python scripts/visualize.py --compare agent_001,agent_002 --format html --output relatorio.html
+
+Live updating (durante treino):
+  python scripts/visualize.py --agents agent_001 --live
+
+================================================================================
+10. TREINO MULTI-AGENTE ORQUESTRADO
+================================================================================
+
+Treinar múltiplos com curriculum:
+  python training/orchestrator.py --config config/training_config.yaml --agents agent_001,agent_002,agent_003 --parallel 2
+
+Config em config/training_config.yaml:
+  orchestration:
+    agents: ["agent_001", "agent_002"]
+    max_parallel_agents: 2
+    population:
+      enabled: true
+    curriculum:
+      enabled: true
+      stages: [...]
+
+================================================================================
+11. EXPORTAÇÃO MODELO (DEPLOY)
+================================================================================
+
+Exportar ONNX:
+  python scripts/export_onnx.py --agent agent_001 --checkpoint best.pt --output modelo.onnx
+
+================================================================================
+12. TESTES
+================================================================================
+
+Todos testes:
+  pytest tests/ -v
+
+Apenas unitários:
+  pytest tests/unit/ -v
+
+Com coverage:
+  pytest tests/ --cov=core --cov-report=html
+
+Lint:
+  ruff check .
+  black --check .
+
+================================================================================
+13. REGRAS DESENVOLVIMENTO (OBRIGATÓRIO)
+================================================================================
+
+LEIA init/rules.md ANTES DE ALTERAR
+
+Princípios:
+1. EFICIÊNCIA: Reutilize core/, configs > hardcoded, batch operations
+2. ORGANIZAÇÃO: 1 agente = 1 pasta, código compartilhado SÓ core/
+3. MODULARIDADE: Responsabilidade única módulo
+4. REPRODUTIBILIDADE: Configs versionadas, seeding, checkpointing
+5. OBSERVABILIDADE: Logs JSONL estruturados, TensorBoard, métricas
+
+PROIBIDO:
+- import agents.agent_XXX em core/ (acoplamento)
+- Paths hardcoded (use config)
+- Variáveis globais (use dependency injection)
+- print() para logging (use logging + JSONL)
+- Magic numbers (use YAML config)
+- API Webots direta em agents (use core.env.WebotsWrapper)
+
+================================================================================
+14. HIERARQUIA HERANÇA CONFIG
+================================================================================
+
+Prioridade (menor → maior):
+1. config/ppo_config.yaml       # Padrões PPO base
+2. config/neural_config.yaml    # Padrões rede base
+3. config/webots_config.yaml    # Padrões Webots base
+4. config/training_config.yaml  # Padrões treino base
+5. agents/agent_XXX/config.yaml # Overrides ESPECÍFICOS agente
+6. CLI args (--key value)       # Overrides runtime
+
+================================================================================
+15. PROBLEMAS COMUNS & SOLUÇÕES
+================================================================================
+
+Webots não encontrado:
+  - Defina WEBOTS_HOME, verifique executável em $WEBOTS_HOME/webots
+
+Erros import:
+  - Rode da raiz: cd C:\Users\ladis\OneDrive\Desktop\ia
+  - PYTHONPATH inclui raiz projeto
+
+CUDA OOM:
+  - Reduza batch_size, n_steps no config
+  - Enable gradient checkpointing
+
+Treino diverge:
+  - Reduza learning_rate 10x
+  - Enable reward normalization
+  - Verifique observation normalization
+
+Webots crash:
+  - Verifique webots/controllers/ppo_agent/controller.log
+  - Reduza timestep physics no world
+  - Adicione filtro ruído sensores wrapper
+
+================================================================================
+16. COMANDOS ÚTEIS REFERÊNCIA
+================================================================================
+
+# Criar agente
+python scripts/create_agent.py --name agent_XXX --template TIPO
+
+# Treinar
+python agents/agent_XXX/train.py [--resume PATH] [--dry-run] [--wandb]
+
+# Avaliar
+python scripts/evaluate.py --agents agent_XXX [--checkpoint FILE] [--episodes N]
+
+# Visualizar
+python scripts/visualize.py [--agents A] [--compare A,B] [--metric M] [--format html|png]
+
+# Multi-agente
+python training/orchestrator.py --agents A,B,C --parallel N
+
+# Exportar
+python scripts/export_onnx.py --agent agent_XXX --checkpoint best.pt
+
+# Validar config
+python -m core.utils.config path/to/config.yaml
+
+# Lint
+ruff check . && black --check .
+
+# Testes
+pytest tests/ -v
+
+================================================================================
+17. LOCAIS LOGS & CHECKPOINTS
+================================================================================
+
+Logs treino (JSONL):
+  agents/agent_XXX/logs/train_YYYYMMDD_HHMMSS.jsonl
+
+TensorBoard:
+  agents/agent_XXX/logs/tensorboard/
+
+Checkpoints:
+  agents/agent_XXX/checkpoints/
+    best.pt        # Melhor performance avaliação
+    latest.pt      # Mais recente
+    step_N.pt      # Saves periódicos
+
+Vídeos avaliação:
+  agents/agent_XXX/videos/eval_ep_N.mp4
+
+================================================================================
+FIM GUIA USO
+================================================================================

@@ -1,0 +1,60 @@
+#VRML_SIM R2023b utf8
+
+WorldInfo {
+  coordinateSystem "NUE"
+  title "PPO Training World"
+  info ["PPO Training Environment", "Auto-generated"]
+  basicTimeStep 16
+  contactProperties [
+    ContactProperties {
+      material1 "default"
+      material2 "default"
+      coulombFriction 1.0
+      bounce 0.0
+      bounceVelocity 0.1
+      forceDependentSlip 0.0
+    }
+  ]
+}
+
+Viewpoint {
+  position 0 3 5
+  orientation 1 0 0 -0.6
+  description "Training View"
+}
+
+# Ground plane
+Solid {
+  translation 0 0 0
+  children [
+    Shape {
+      appearance Appearance {
+        material Material {
+          diffuseColor 0.5 0.5 0.5
+        }
+      }
+      geometry Box {
+        size 20 0.1 20
+      }
+    }
+  ]
+  boundingObject Box {
+    size 20 0.1 20
+  }
+  physics Physics {
+    mass 0.0
+  }
+}
+
+# PPO Robot
+PPOWalkerRobot {
+  translation 0 0.5 0
+  name "PPO_ROBOT"
+  controller "ppo_agent"
+}
+
+# Supervisor
+Supervisor {
+  name "SUPERVISOR"
+  controller "supervisor"
+}

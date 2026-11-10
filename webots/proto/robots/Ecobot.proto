@@ -1,0 +1,538 @@
+#VRML_SIM R2023b utf8
+
+# Ecobot - Robô para Coleta Seletiva
+# Projetado para: pegar garrafa PET 500ml e depositar em lixeira
+# Otimizado para eficiência mecânica na tarefa
+
+PROTO Ecobot [
+  field SFVec3f translation 0 0.1 0
+  field SFRotation rotation 0 0 1 0
+  field SFString name "ECOBOT"
+  field SFString controller "ppo_agent"
+] {
+  Robot {
+    name IS name
+    controller IS controller
+    supervisor FALSE
+    synchronization TRUE
+    children [
+      # ============================================================
+      # BASE MÓVEL (Differential Drive) - Para navegação
+      # ============================================================
+      Solid {
+        name "base"
+        translation 0 0.05 0
+        children [
+          Shape {
+            appearance Appearance {
+              material Material {
+                diffuseColor 0.2 0.2 0.3
+                specularColor 0.1 0.1 0.1
+              }
+            }
+            geometry Box {
+              size 0.45 0.1 0.35
+            }
+          }
+        ]
+        boundingObject Box {
+          size 0.45 0.1 0.35
+        }
+        physics Physics {
+          mass 3.0
+          centerOfMass 0 0 0
+        }
+
+        # Roda Esquerda
+        endPoint HingeJoint {
+          name "wheel_left"
+          jointParameters HingeJointParameters {
+            axis 0 1 0
+            anchor -0.22 0 0.15
+          }
+          device HingeJointDevice {
+            name "wheel_left"
+          }
+          endPoint Solid {
+            name "wheel_left_tire"
+            translation 0 -0.05 0
+            children [
+              Shape {
+                appearance Appearance {
+                  material Material {
+                    diffuseColor 0.1 0.1 0.1
+                  }
+                }
+                geometry Cylinder {
+                  radius 0.065
+                  height 0.04
+                }
+              }
+            ]
+            boundingObject Cylinder {
+              radius 0.065
+              height 0.04
+            }
+            physics Physics {
+              mass 0.2
+            }
+          }
+        }
+
+        # Roda Direita
+        endPoint HingeJoint {
+          name "wheel_right"
+          jointParameters HingeJointParameters {
+            axis 0 1 0
+            anchor 0.22 0 0.15
+          }
+          device HingeJointDevice {
+            name "wheel_right"
+          }
+          endPoint Solid {
+            name "wheel_right_tire"
+            translation 0 -0.05 0
+            children [
+              Shape {
+                appearance Appearance {
+                  material Material {
+                    diffuseColor 0.1 0.1 0.1
+                  }
+                }
+                geometry Cylinder {
+                  radius 0.065
+                  height 0.04
+                }
+              }
+            ]
+            boundingObject Cylinder {
+              radius 0.065
+              height 0.04
+            }
+            physics Physics {
+              mass 0.2
+            }
+          }
+        }
+
+        # Roda caster traseira (passiva)
+        endPoint Solid {
+          name "caster_rear"
+          translation 0 0.03 -0.15
+          children [
+            Shape {
+              appearance Appearance {
+                material Material {
+                  diffuseColor 0.3 0.3 0.3
+                }
+              }
+              geometry Sphere {
+                radius 0.03
+              }
+            }
+          ]
+          boundingObject Sphere {
+            radius 0.03
+          }
+          physics Physics {
+            mass 0.1
+          }
+        }
+      }
+
+      # ============================================================
+      # TORSO (Elevação vertical) - Para alcance vertical
+      # ============================================================
+      endPoint PrismaticJoint {
+        name "torso_lift"
+        jointParameters PrismaticJointParameters {
+          axis 0 1 0
+          anchor 0 0.1 0
+        }
+        device PrismaticJointDevice {
+          name "torso_lift"
+        }
+        endPoint Solid {
+          name "torso"
+          translation 0 0.2 0
+          children [
+            Shape {
+              appearance Appearance {
+                material Material {
+                  diffuseColor 0.3 0.5 0.3
+                  specularColor 0.1 0.1 0.1
+                }
+              }
+              geometry Box {
+                size 0.25 0.4 0.15
+              }
+            }
+          ]
+          boundingObject Box {
+            size 0.25 0.4 0.15
+          }
+          physics Physics {
+            mass 1.5
+            centerOfMass 0 0.1 0
+          }
+
+          # ============================================================
+          # BRAÇO MANIPULADOR (4 DOF) - Otimizado para pegar garrafa
+          # ============================================================
+
+          # Ombro - Pitch (elevação/abaixamento)
+          endPoint HingeJoint {
+            name "shoulder_pitch"
+            jointParameters HingeJointParameters {
+              axis 0 0 1
+              anchor 0 0.35 0
+            }
+            device HingeJointDevice {
+              name "shoulder_pitch"
+            }
+            endPoint Solid {
+              name "upper_arm"
+              translation 0 -0.15 0
+              children [
+                Shape {
+                  appearance Appearance {
+                    material Material {
+                      diffuseColor 0.4 0.6 0.4
+                    }
+                  }
+                  geometry Cylinder {
+                    radius 0.04
+                    height 0.3
+                  }
+                }
+              ]
+              boundingObject Cylinder {
+                radius 0.04
+                height 0.3
+              }
+              physics Physics {
+                mass 0.6
+                centerOfMass 0 -0.1 0
+              }
+
+              # Cotovelo - Pitch
+              endPoint HingeJoint {
+                name "elbow_pitch"
+                jointParameters HingeJointParameters {
+                  axis 0 0 1
+                  anchor 0 -0.3 0
+                }
+                device HingeJointDevice {
+                  name "elbow_pitch"
+                }
+                endPoint Solid {
+                  name "forearm"
+                  translation 0 -0.25 0
+                  children [
+                    Shape {
+                      appearance Appearance {
+                        material Material {
+                          diffuseColor 0.4 0.6 0.4
+                        }
+                      }
+                      geometry Cylinder {
+                        radius 0.035
+                        height 0.25
+                      }
+                    }
+                  ]
+                  boundingObject Cylinder {
+                    radius 0.035
+                    height 0.25
+                  }
+                  physics Physics {
+                    mass 0.4
+                    centerOfMass 0 -0.1 0
+                  }
+
+                  # Pulso - Pitch (orientação garrafa)
+                  endPoint HingeJoint {
+                    name "wrist_pitch"
+                    jointParameters HingeJointParameters {
+                      axis 0 0 1
+                      anchor 0 -0.25 0
+                    }
+                    device HingeJointDevice {
+                      name "wrist_pitch"
+                    }
+                    endPoint Solid {
+                      name "wrist"
+                      translation 0 -0.1 0
+                      children [
+                        Shape {
+                          appearance Appearance {
+                            material Material {
+                              diffuseColor 0.5 0.5 0.5
+                            }
+                          }
+                          geometry Box {
+                            size 0.08 0.1 0.08
+                          }
+                        }
+                      ]
+                      boundingObject Box {
+                        size 0.08 0.1 0.08
+                      }
+                      physics Physics {
+                        mass 0.2
+                      }
+
+                      # ============================================================
+                      # GARRA PARALELA (2 dedos) - Otimizada para garrafa PET
+                      # ============================================================
+
+                      # Dedo Fixo (base da garra)
+                      endPoint Solid {
+                        name "finger_fixed_base"
+                        translation 0 -0.12 0
+                        children [
+                          Shape {
+                            appearance Appearance {
+                              material Material {
+                                diffuseColor 0.8 0.8 0.2
+                                specularColor 0.3 0.3 0.1
+                              }
+                            }
+                            geometry Box {
+                              size 0.06 0.12 0.04
+                            }
+                          }
+                        ]
+                        boundingObject Box {
+                          size 0.06 0.12 0.04
+                        }
+                        physics Physics {
+                          mass 0.05
+                        }
+
+                        # Ponta do dedo fixo (curva para garrafa)
+                        endPoint Solid {
+                          name "finger_fixed_tip"
+                          translation 0 -0.06 0.02
+                          rotation 1 0 0 -0.3
+                          children [
+                            Shape {
+                              appearance Appearance {
+                                material Material {
+                                  diffuseColor 0.9 0.9 0.3
+                                }
+                              }
+                              geometry Box {
+                                size 0.05 0.08 0.03
+                              }
+                            }
+                          ]
+                          boundingObject Box {
+                            size 0.05 0.08 0.03
+                          }
+                          physics Physics {
+                            mass 0.02
+                          }
+                        }
+                      }
+
+                      # Dedo Móvel (acionado por motor)
+                      endPoint HingeJoint {
+                        name "finger_joint"
+                        jointParameters HingeJointParameters {
+                          axis 0 0 1
+                          anchor 0 -0.06 0
+                        }
+                        device HingeJointDevice {
+                          name "finger_joint"
+                        }
+                        endPoint Solid {
+                          name "finger_mobile"
+                          translation 0 -0.12 0
+                          children [
+                            Shape {
+                              appearance Appearance {
+                                material Material {
+                                  diffuseColor 0.8 0.8 0.2
+                                  specularColor 0.3 0.3 0.1
+                                }
+                              }
+                              geometry Box {
+                                size 0.06 0.12 0.04
+                              }
+                            }
+                          ]
+                          boundingObject Box {
+                            size 0.06 0.12 0.04
+                          }
+                          physics Physics {
+                            mass 0.05
+                          }
+
+                          # Ponta do dedo móvel (curva para garrafa)
+                          endPoint Solid {
+                            name "finger_mobile_tip"
+                            translation 0 -0.06 0.02
+                            rotation 1 0 0 -0.3
+                            children [
+                              Shape {
+                                appearance Appearance {
+                                  material Material {
+                                    diffuseColor 0.9 0.9 0.3
+                                  }
+                                }
+                                geometry Box {
+                                  size 0.05 0.08 0.03
+                                }
+                              }
+                            ]
+                            boundingObject Box {
+                              size 0.05 0.08 0.03
+                            }
+                            physics Physics {
+                              mass 0.02
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+
+          # Ombro - Roll (lateral) - Para alinhamento lateral
+          endPoint HingeJoint {
+            name "shoulder_roll"
+            jointParameters HingeJointParameters {
+              axis 1 0 0
+              anchor 0 0.35 0
+            }
+            device HingeJointDevice {
+              name "shoulder_roll"
+            }
+          }
+
+          # Ombro - Yaw (rotação base) - Para alcance lateral amplo
+          endPoint HingeJoint {
+            name "shoulder_yaw"
+            jointParameters HingeJointParameters {
+              axis 0 1 0
+              anchor 0 0.35 0
+            }
+            device HingeJointDevice {
+              name "shoulder_yaw"
+            }
+          }
+        }
+      }
+
+      # ============================================================
+      # SENSORES
+      # ============================================================
+
+      # IMU no torso
+      InertialUnit {
+        name "imu"
+      }
+      Gyro {
+        name "gyro"
+      }
+      Accelerometer {
+        name "accelerometer"
+      }
+
+      # GPS na base
+      GPS {
+        name "gps"
+      }
+
+      # LiDAR 2D no torso (para navegação e detecção lixeira)
+      Lidar {
+        name "lidar"
+        horizontalResolution 360
+        frequency 10
+        maxRange 5.0
+        noise 0.01
+        pointCloud FALSE
+      }
+
+      # Câmera RGB no torso (detecção visual garrafa/lixeira)
+      Camera {
+        name "camera"
+        width 320
+        height 240
+        focalLength 0.004
+        near 0.01
+        far 5.0
+      }
+
+      # Camera de profundidade (opcional - para distância precisa)
+      Camera {
+        name "depth_camera"
+        width 160
+        height 120
+        focalLength 0.004
+        near 0.01
+        far 3.0
+      }
+
+      # Sensores de força/torque no pulso (para detecção contato garrafa)
+      ForceSensor {
+        name "force_sensor"
+      }
+
+      # Touch sensors nos dedos (detecção contato)
+      TouchSensor {
+        name "touch_finger_fixed"
+      }
+      TouchSensor {
+        name "touch_finger_mobile"
+      }
+
+      # Position sensors em todas as juntas
+      PositionSensor {
+        name "wheel_left_sensor"
+      }
+      PositionSensor {
+        name "wheel_right_sensor"
+      }
+      PositionSensor {
+        name "torso_lift_sensor"
+      }
+      PositionSensor {
+        name "shoulder_pitch_sensor"
+      }
+      PositionSensor {
+        name "shoulder_roll_sensor"
+      }
+      PositionSensor {
+        name "shoulder_yaw_sensor"
+      }
+      PositionSensor {
+        name "elbow_pitch_sensor"
+      }
+      PositionSensor {
+        name "wrist_pitch_sensor"
+      }
+      PositionSensor {
+        name "finger_joint_sensor"
+      }
+
+      # ============================================================
+      # COMUNICAÇÃO
+      # ============================================================
+      Emitter {
+        name "emitter"
+        channel 1
+        range -1
+        direction 0 0 1
+      }
+      Receiver {
+        name "receiver"
+        channel 1
+      }
+    ]
+  }
+}

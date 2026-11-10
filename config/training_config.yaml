@@ -1,0 +1,210 @@
+# Training Pipeline Configuration
+version: "1.0.0"
+
+# Global Training Settings
+training:
+  # Total timesteps across all agents
+  total_timesteps: 10_000_000
+
+  # Number of parallel environments per agent
+  n_envs: 8
+
+  # Evaluation frequency (steps)
+  eval_freq: 50_000
+
+  # Number of evaluation episodes
+  n_eval_episodes: 10
+
+  # Checkpoint frequency (steps)
+  save_freq: 100_000
+
+  # Maximum episode steps
+  max_episode_steps: 1000
+
+  # Random seed
+  seed: 42
+
+  # Deterministic operations (slower but reproducible)
+  deterministic: true
+
+  # Device
+  device: "auto"  # auto, cpu, cuda, cuda:0, mps
+
+# Multi-Agent Orchestration
+orchestration:
+  # Agents to train (directory names under agents/)
+  agents:
+    - "agent_001"
+    - "agent_002"
+    - "agent_003"
+
+  # Parallel agent training (max concurrent)
+  max_parallel_agents: 2
+
+  # Population-based training
+  population:
+    enabled: false
+    population_size: 10
+    perturb_interval: 100_000
+    perturb_factors:
+      learning_rate: [0.5, 2.0]
+      ent_coef: [0.5, 2.0]
+      clip_range: [0.8, 1.2]
+
+  # Curriculum learning
+  curriculum:
+    enabled: false
+    # Stages: each stage can modify agent configs
+    stages:
+      - name: "basic_locomotion"
+        timesteps: 1_000_000
+        config_overrides:
+          env:
+            world: "curriculum/flat.wbt"
+          reward_weights:
+            forward_vel: 1.0
+            energy: -0.001
+      - name: "rough_terrain"
+        timesteps: 3_000_000
+        config_overrides:
+          env:
+            world: "curriculum/rough.wbt"
+          reward_weights:
+            forward_vel: 1.0
+            energy: -0.01
+            stability: 0.5
+      - name: "advanced_tasks"
+        timesteps: 6_000_000
+        config_overrides:
+          env:
+            world: "curriculum/obstacles.wbt"
+          reward_weights:
+            forward_vel: 1.0
+            energy: -0.01
+            stability: 0.5
+            task_completion: 10.0
+
+# Resource Management
+resources:
+  # GPU memory fraction per process (0.0-1.0)
+  gpu_memory_fraction: 0.8
+
+  # CPU threads per process
+  cpu_threads: 4
+
+  # Max concurrent Webots instances
+  max_webots_instances: 4
+
+  # Shared memory for vec env
+  shared_memory: true
+
+# Logging & Monitoring
+monitoring:
+  # TensorBoard
+  tensorboard:
+    enabled: true
+    log_dir: "logs/tensorboard"
+    flush_secs: 30
+
+  # Weights & Biases
+  wandb:
+    enabled: false
+    project: "ppo-webots-training"
+    entity: null
+    tags: []
+    group: null
+
+  # Console logging
+  console:
+    level: "INFO"
+    log_interval: 1000  # steps
+
+  # File logging (JSONL)
+  file:
+    enabled: true
+    dir: "logs/training"
+    rotate: true
+    max_size_mb: 100
+
+  # Metrics to track
+  metrics:
+    - "train/episode_reward"
+    - "train/episode_length"
+    - "train/entropy"
+    - "train/kl_divergence"
+    - "train/clip_fraction"
+    - "train/value_loss"
+    - "train/policy_loss"
+    - "train/learning_rate"
+    - "eval/mean_reward"
+    - "eval/std_reward"
+    - "eval/success_rate"
+    - "eval/mean_length"
+    - "system/gpu_memory"
+    - "system/cpu_usage"
+    - "system/ram_usage"
+
+# Checkpointing
+checkpointing:
+  # Save best model based on eval metric
+  save_best: true
+  best_metric: "eval/mean_reward"
+  best_mode: "max"  # max, min
+
+  # Save latest
+  save_latest: true
+
+  # Save periodic
+  save_periodic: true
+  keep_periodic: 5  # Number of periodic checkpoints to keep
+
+  # Save on signal (SIGINT, SIGTERM)
+  save_on_signal: true
+
+  # Checkpoint format
+  format: "pytorch"  # pytorch, safetensors
+
+  # Include optimizer state
+  include_optimizer: true
+
+  # Include RNG states
+  include_rng: true
+
+# Early Stopping
+early_stopping:
+  enabled: true
+  patience: 5  # Evaluations without improvement
+  min_delta: 1.0  # Minimum improvement
+  metric: "eval/mean_reward"
+  mode: "max"
+
+# Recovery
+recovery:
+  # Auto-resume from latest checkpoint
+  auto_resume: true
+
+  # Max retries on failure
+  max_retries: 3
+
+  # Retry delay (seconds)
+  retry_delay: 30
+
+  # Health check interval (steps)
+  health_check_interval: 10_000
+
+# Experiment Tracking
+experiment:
+  # Experiment name (auto-generated if null)
+  name: null
+
+  # Description
+  description: ""
+
+  # Tags
+  tags: []
+
+  # Git info (auto-captured)
+  track_git: true
+
+  # Config hash (for reproducibility)
+  track_config_hash: true

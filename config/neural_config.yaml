@@ -1,0 +1,240 @@
+# Neural Network Architecture Defaults
+version: "1.0.0"
+
+# Global Network Settings
+network:
+  # Default initialization
+  initialization:
+    type: "orthogonal"  # orthogonal, xavier_uniform, xavier_normal, kaiming_uniform, kaiming_normal
+    gain: 1.0
+    bias_init: 0.0
+
+  # Activation functions
+  activations:
+    default: "tanh"
+    # Available: relu, leaky_relu, elu, gelu, swish, mish, tanh, sigmoid, silu
+    # Map names to modules
+    mapping:
+      relu: "ReLU"
+      leaky_relu: "LeakyReLU"
+      elu: "ELU"
+      gelu: "GELU"
+      swish: "SiLU"
+      mish: "Mish"
+      tanh: "Tanh"
+      sigmoid: "Sigmoid"
+      silu: "SiLU"
+
+  # Normalization
+  normalization:
+    layer_norm: false
+    batch_norm: false
+    group_norm: false
+    group_norm_groups: 32
+
+  # Dropout
+  dropout:
+    enabled: false
+    rate: 0.1
+
+  # Residual connections
+  residual:
+    enabled: false
+    type: "add"  # add, concat
+
+# Encoder Architectures
+encoders:
+  # MLP Encoder (for vector observations)
+  mlp:
+    hidden_sizes: [128, 128]
+    activation: "tanh"
+    layer_norm: false
+    output_size: 128
+    output_activation: null
+
+  # CNN Encoder (for image observations)
+  cnn:
+    channels: [32, 64, 64]
+    kernels: [8, 4, 3]
+    strides: [4, 2, 1]
+    paddings: [0, 0, 0]
+    activation: "relu"
+    layer_norm: false
+    output_size: 512
+    # Input shape: [C, H, W] - set per agent
+    input_shape: [3, 64, 64]
+
+  # RNN Encoder (for temporal observations)
+  rnn:
+    type: "lstm"  # lstm, gru
+    hidden_size: 256
+    num_layers: 1
+    bidirectional: false
+    dropout: 0.0
+    batch_first: true
+    # Input size set per agent
+    input_size: 128
+
+  # Transformer Encoder
+  transformer:
+    d_model: 256
+    nhead: 4
+    num_layers: 2
+    dim_feedforward: 1024
+    dropout: 0.1
+    activation: "gelu"
+    batch_first: true
+    norm_first: true
+    # Input size set per agent
+    input_size: 128
+
+  # LiDAR Encoder (1D conv for range data)
+  lidar:
+    channels: [32, 64, 128]
+    kernels: [5, 5, 3]
+    strides: [2, 2, 1]
+    activation: "relu"
+    pool: "max"  # max, avg, none
+    output_size: 128
+    # Input: [batch, 1, num_rays]
+    input_channels: 1
+    num_rays: 360
+
+  # Multi-modal Fusion Encoder
+  fusion:
+    type: "concat"  # concat, attention, cross_attention, film
+    # For attention fusion
+    attention_heads: 4
+    attention_dim: 256
+    # Modalities: list of encoder keys to fuse
+    modalities: ["proprio", "lidar"]
+    output_size: 256
+
+# Actor Networks
+actor:
+  # Base architecture
+  type: "mlp"  # mlp, gaussian, squashed_gaussian, categorical, mixture
+
+  # Hidden layers (after encoder)
+  hidden_sizes: [256, 256]
+  activation: "tanh"
+  layer_norm: false
+
+  # Output heads
+  continuous:
+    # Gaussian policy
+    log_std_init: -0.5
+    log_std_min: -20.0
+    log_std_max: 2.0
+    # State-dependent std
+    state_dependent_std: true
+    # Squashed Gaussian (SAC-style)
+    squash: false
+    # Action scaling
+    action_scale: 1.0
+    action_bias: 0.0
+
+  discrete:
+    # Categorical policy
+    temperature: 1.0
+    gumbel_softmax: false
+
+  mixture:
+    # Mixture of Gaussians
+    num_components: 5
+    component_type: "gaussian"
+
+# Critic Networks
+critic:
+  # Architecture type
+  type: "mlp"  # mlp, twin, ensemble
+
+  # Hidden layers (after encoder, or shared)
+  hidden_sizes: [256, 256]
+  activation: "tanh"
+  layer_norm: false
+
+  # Twin critics (for TD3/SAC style)
+  twin: false
+
+  # Ensemble critics
+  ensemble_size: 1
+
+  # Value function clipping
+  clip_value: null  # None or float
+
+# Shared Encoder (if network.shared_encoder = true)
+shared_encoder:
+  type: "mlp"
+  hidden_sizes: [256, 256]
+  activation: "tanh"
+  layer_norm: false
+  output_size: 256
+
+# Advanced Architectures
+advanced:
+  # Recurrent policies
+  recurrent:
+    enabled: false
+    type: "lstm"
+    hidden_size: 256
+    num_layers: 1
+    # Whether to use recurrent critic
+    recurrent_critic: false
+
+  # Attention-based
+  attention:
+    enabled: false
+    num_heads: 4
+    num_layers: 2
+    dim_feedforward: 512
+
+  # Hierarchical (option-critic)
+  hierarchical:
+    enabled: false
+    num_options: 4
+    option_dim: 64
+    termination_regularizer: 0.01
+
+  # Symmetry/Equivariance
+  equivariant:
+    enabled: false
+    group: "SO2"  # SO2, SO3, SE2, SE3
+    # For robot joints
+    joint_groups: []
+
+# Regularization
+regularization:
+  # Weight decay (handled by optimizer)
+  weight_decay: 0.0
+
+  # Spectral normalization
+  spectral_norm: false
+
+  # Gradient penalty
+  gradient_penalty: false
+  gp_coef: 10.0
+
+  # Orthogonal regularization
+  orthogonal_reg: false
+  ortho_coef: 1e-4
+
+# Export/Deployment
+export:
+  # ONNX export settings
+  onnx:
+    opset_version: 17
+    dynamic_axes: true
+    simplify: true
+    verify: true
+
+  # TorchScript
+  torchscript:
+    enabled: false
+    optimize: true
+
+  # Quantization
+  quantization:
+    enabled: false
+    type: "dynamic"  # dynamic, static, qat
+    dtype: "qint8"

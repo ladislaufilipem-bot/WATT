@@ -1,0 +1,150 @@
+# PPO Algorithm Configuration - Base Defaults
+# All agents inherit from this; override only what's needed in agent config
+
+# Version for config compatibility tracking
+version: "1.0.0"
+
+# PPO Hyperparameters
+ppo:
+  # Learning rate for optimizer
+  learning_rate: 3.0e-4
+
+  # Number of steps per rollout (per environment)
+  n_steps: 2048
+
+  # Minibatch size for SGD epochs
+  batch_size: 64
+
+  # Number of epochs per update
+  n_epochs: 10
+
+  # Discount factor
+  gamma: 0.99
+
+  # GAE lambda for advantage estimation
+  gae_lambda: 0.95
+
+  # PPO clip range (can be schedule)
+  clip_range: 0.2
+
+  # Value function clip range
+  clip_range_vf: null  # None = no clipping
+
+  # Entropy coefficient (exploration)
+  ent_coef: 0.01
+
+  # Value function coefficient
+  vf_coef: 0.5
+
+  # Max gradient norm for clipping
+  max_grad_norm: 0.5
+
+  # Target KL divergence for early stopping (None = disabled)
+  target_kl: 0.01
+
+  # Normalize advantages per minibatch
+  normalize_advantage: true
+
+  # Use clipped value loss
+  clip_vloss: true
+
+# Optimizer settings
+optimizer:
+  type: "adam"  # adam, adamw, rmsprop
+  eps: 1.0e-5
+  weight_decay: 0.0
+  betas: [0.9, 0.999]
+
+# Learning rate schedule
+lr_schedule:
+  type: "constant"  # constant, linear, cosine, exponential
+  # For linear: final_lr = initial_lr * end_factor
+  end_factor: 0.0
+  # For cosine: T_max = total_timesteps / (n_steps * n_envs)
+  # For exponential: gamma per epoch
+  gamma: 0.999
+
+# Network architecture defaults (can be overridden per agent)
+network:
+  # Shared encoder (None = separate actor/critic encoders)
+  shared_encoder: false
+
+  # Actor network
+  actor:
+    hidden_sizes: [256, 256]
+    activation: "tanh"  # tanh, relu, elu, gelu, swish
+    layer_norm: false
+    output_activation: "tanh"  # For continuous actions
+    log_std_init: -0.5
+    log_std_min: -20.0
+    log_std_max: 2.0
+
+  # Critic network
+  critic:
+    hidden_sizes: [256, 256]
+    activation: "tanh"
+    layer_norm: false
+
+  # Encoder for observations (CNN, MLP, RNN, Transformer)
+  encoder:
+    type: "mlp"  # mlp, cnn, rnn, transformer, lidar
+    # MLP specific
+    mlp_hidden_sizes: [128, 128]
+    # CNN specific
+    cnn_channels: [32, 64, 64]
+    cnn_kernels: [8, 4, 3]
+    cnn_strides: [4, 2, 1]
+    # RNN specific
+    rnn_type: "lstm"  # lstm, gru
+    rnn_hidden_size: 256
+    rnn_num_layers: 1
+    # Transformer specific
+    transformer_heads: 4
+    transformer_layers: 2
+    transformer_dim_feedforward: 512
+
+# Observation/Action preprocessing
+preprocessing:
+  # Observation normalization (RunningMeanStd)
+  normalize_obs: true
+  obs_clip: 10.0
+
+  # Reward normalization
+  normalize_reward: false
+  reward_clip: 10.0
+  reward_gamma: 0.99
+
+  # Action scaling (for continuous)
+  action_scale: 1.0
+  action_bias: 0.0
+
+# Exploration
+exploration:
+  # Action noise (for continuous)
+  action_noise_type: null  # none, normal, ou
+  action_noise_std: 0.1
+
+  # Random network distillation (RND)
+  use_rnd: false
+  rnd_coef: 1.0
+  rnd_encoder_sizes: [256, 256]
+
+# Distributed training
+distributed:
+  enabled: false
+  backend: "nccl"  # nccl, gloo
+  world_size: 1
+  rank: 0
+
+# Mixed precision
+amp:
+  enabled: true
+  dtype: "float16"  # float16, bfloat16
+
+# Logging
+logging:
+  log_interval: 1000  # steps
+  tensorboard: true
+  wandb: false
+  wandb_project: "ppo-webots"
+  wandb_entity: null

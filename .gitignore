@@ -1,0 +1,96 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+
+# IDE / Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+logs/
+*.log
+
+# Checkpoints and models
+agents/*/checkpoints/
+agents/*/models/
+agents/*/videos/
+*.pt
+*.onnx
+*.safetensors
+
+# TensorBoard
+runs/
+agents/*/logs/tensorboard/
+
+# Weights & Biases
+wandb/
+
+# Coverage
+.coverage
+htmlcov/
+*.cover
+
+# pytest
+.pytest_cache/
+.hypothesis/
+
+# mypy
+.mypy_cache/
+
+# ruff
+.ruff_cache/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Environment variables
+.env
+.env.local
+
+# Webots
+*.wbo
+*.wbproj
+webots/controllers/*/__pycache__/
+webots/controllers/*/controller.log
+
+# Reports
+reports/*.png
+reports/*.html
+reports/*.md
+
+# Temporary
+tmp/
+temp/
+*.tmp

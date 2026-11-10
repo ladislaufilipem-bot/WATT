@@ -1,0 +1,345 @@
+#VRML_SIM R2023b utf8
+
+# PPO Walker Robot PROTO
+# 12-DOF bipedal walker with sensors
+
+PROTO PPOWalkerRobot [
+  field SFVec3f translation 0 0.5 0
+  field SFRotation rotation 0 0 1 0
+  field SFString name "PPO_ROBOT"
+  field SFString controller "ppo_agent"
+] {
+  Robot {
+    name IS name
+    controller IS controller
+    supervisor FALSE
+    synchronization TRUE
+    children [
+      # Base/Body
+      Solid {
+        name "body"
+        translation 0 0.8 0
+        children [
+          Shape {
+            appearance Appearance {
+              material Material {
+                diffuseColor 0.2 0.4 0.8
+              }
+            }
+            geometry Box {
+              size 0.3 0.4 0.2
+            }
+          }
+        ]
+        boundingObject Box {
+          size 0.3 0.4 0.2
+        }
+        physics Physics {
+          mass 5.0
+          centerOfMass 0 0 0
+        }
+      }
+
+      # Left Leg (6 DOF)
+      # Hip
+      HingeJoint {
+        name "left_hip_yaw"
+        jointParameters HingeJointParameters {
+          axis 0 1 0
+          anchor 0.15 0.6 0
+        }
+        device HingeJointDevice {
+          name "left_hip_yaw"
+        }
+        endPoint Solid {
+          name "left_thigh"
+          translation 0 -0.2 0
+          children [
+            Shape {
+              appearance Appearance {
+                material Material {
+                  diffuseColor 0.3 0.5 0.9
+                }
+              }
+              geometry Cylinder {
+                radius 0.05
+                height 0.4
+              }
+            }
+          ]
+          boundingObject Cylinder {
+            radius 0.05
+            height 0.4
+          }
+          physics Physics {
+            mass 1.5
+          }
+          endPoint HingeJoint {
+            name "left_hip_roll"
+            jointParameters HingeJointParameters {
+              axis 1 0 0
+              anchor 0 0 0
+            }
+            device HingeJointDevice {
+              name "left_hip_roll"
+            }
+            endPoint HingeJoint {
+              name "left_hip_pitch"
+              jointParameters HingeJointParameters {
+                axis 0 0 1
+                anchor 0 0 0
+              }
+              device HingeJointDevice {
+                name "left_hip_pitch"
+              }
+              endPoint Solid {
+                name "left_shin"
+                translation 0 -0.4 0
+                children [
+                  Shape {
+                    appearance Appearance {
+                      material Material {
+                        diffuseColor 0.3 0.5 0.9
+                      }
+                    }
+                    geometry Cylinder {
+                      radius 0.04
+                      height 0.4
+                    }
+                  }
+                ]
+                boundingObject Cylinder {
+                  radius 0.04
+                  height 0.4
+                }
+                physics Physics {
+                  mass 1.0
+                }
+                endPoint HingeJoint {
+                  name "left_knee"
+                  jointParameters HingeJointParameters {
+                    axis 0 0 1
+                    anchor 0 0 0
+                  }
+                  device HingeJointDevice {
+                    name "left_knee"
+                  }
+                  endPoint Solid {
+                    name "left_foot"
+                    translation 0 -0.4 0.05
+                    children [
+                      Shape {
+                        appearance Appearance {
+                          material Material {
+                            diffuseColor 0.2 0.2 0.2
+                          }
+                        }
+                        geometry Box {
+                          size 0.15 0.05 0.25
+                        }
+                      }
+                    ]
+                    boundingObject Box {
+                      size 0.15 0.05 0.25
+                    }
+                    physics Physics {
+                      mass 0.5
+                    }
+                    endPoint HingeJoint {
+                      name "left_ankle_pitch"
+                      jointParameters HingeJointParameters {
+                        axis 0 0 1
+                        anchor 0 0 0
+                      }
+                      device HingeJointDevice {
+                        name "left_ankle_pitch"
+                      }
+                      endPoint HingeJoint {
+                        name "left_ankle_roll"
+                        jointParameters HingeJointParameters {
+                          axis 1 0 0
+                          anchor 0 0 0
+                        }
+                        device HingeJointDevice {
+                          name "left_ankle_roll"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+
+      # Right Leg (6 DOF) - Mirror
+      HingeJoint {
+        name "right_hip_yaw"
+        jointParameters HingeJointParameters {
+          axis 0 1 0
+          anchor -0.15 0.6 0
+        }
+        device HingeJointDevice {
+          name "right_hip_yaw"
+        }
+        endPoint Solid {
+          name "right_thigh"
+          translation 0 -0.2 0
+          children [
+            Shape {
+              appearance Appearance {
+                material Material {
+                  diffuseColor 0.3 0.5 0.9
+                }
+              }
+              geometry Cylinder {
+                radius 0.05
+                height 0.4
+              }
+            }
+          ]
+          boundingObject Cylinder {
+            radius 0.05
+            height 0.4
+          }
+          physics Physics {
+            mass 1.5
+          }
+          endPoint HingeJoint {
+            name "right_hip_roll"
+            jointParameters HingeJointParameters {
+              axis 1 0 0
+              anchor 0 0 0
+            }
+            device HingeJointDevice {
+              name "right_hip_roll"
+            }
+            endPoint HingeJoint {
+              name "right_hip_pitch"
+              jointParameters HingeJointParameters {
+                axis 0 0 1
+                anchor 0 0 0
+              }
+              device HingeJointDevice {
+                name "right_hip_pitch"
+              }
+              endPoint Solid {
+                name "right_shin"
+                translation 0 -0.4 0
+                children [
+                  Shape {
+                    appearance Appearance {
+                      material Material {
+                        diffuseColor 0.3 0.5 0.9
+                      }
+                    }
+                    geometry Cylinder {
+                      radius 0.04
+                      height 0.4
+                    }
+                  }
+                ]
+                boundingObject Cylinder {
+                  radius 0.04
+                  height 0.4
+                }
+                physics Physics {
+                  mass 1.0
+                }
+                endPoint HingeJoint {
+                  name "right_knee"
+                  jointParameters HingeJointParameters {
+                    axis 0 0 1
+                    anchor 0 0 0
+                  }
+                  device HingeJointDevice {
+                    name "right_knee"
+                  }
+                  endPoint Solid {
+                    name "right_foot"
+                    translation 0 -0.4 0.05
+                    children [
+                      Shape {
+                        appearance Appearance {
+                          material Material {
+                            diffuseColor 0.2 0.2 0.2
+                          }
+                        }
+                        geometry Box {
+                          size 0.15 0.05 0.25
+                        }
+                      }
+                    ]
+                    boundingObject Box {
+                      size 0.15 0.05 0.25
+                    }
+                    physics Physics {
+                      mass 0.5
+                    }
+                    endPoint HingeJoint {
+                      name "right_ankle_pitch"
+                      jointParameters HingeJointParameters {
+                        axis 0 0 1
+                        anchor 0 0 0
+                      }
+                      device HingeJointDevice {
+                        name "right_ankle_pitch"
+                      }
+                      endPoint HingeJoint {
+                        name "right_ankle_roll"
+                        jointParameters HingeJointParameters {
+                          axis 1 0 0
+                          anchor 0 0 0
+                        }
+                        device HingeJointDevice {
+                          name "right_ankle_roll"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+
+      # Sensors on body
+      InertialUnit {
+        name "imu"
+      }
+      Gyro {
+        name "gyro"
+      }
+      Accelerometer {
+        name "accelerometer"
+      }
+      GPS {
+        name "gps"
+      }
+
+      # LiDAR on body
+      Lidar {
+        name "lidar"
+        horizontalResolution 360
+        frequency 10
+        maxRange 10.0
+        noise 0.01
+        pointCloud FALSE
+      }
+
+      # Emitter/Receiver for communication
+      Emitter {
+        name "emitter"
+        channel 1
+        range -1
+        direction 0 0 1
+      }
+      Receiver {
+        name "receiver"
+        channel 1
+      }
+    ]
+  }
+}
